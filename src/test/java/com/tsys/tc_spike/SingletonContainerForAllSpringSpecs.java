@@ -90,7 +90,7 @@ abstract class SingletonContainerSupportWithSpringIntegration {
     }
 }
 
-public class SampleSpringSpecs extends SingletonContainerSupportWithSpringIntegration {
+public class SingletonContainerForAllSpringSpecs extends SingletonContainerSupportWithSpringIntegration {
 
     @Autowired
     private DataSource dataSource;

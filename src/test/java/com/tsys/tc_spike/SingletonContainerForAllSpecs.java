@@ -55,7 +55,7 @@ abstract class SingletonContainerSupport {
     }
 }
 
-public class SampleSpecs extends SingletonContainerSupport {
+public class SingletonContainerForAllSpecs extends SingletonContainerSupport {
     @Test
     public void containerHasStarted() {
         assertThat(MYSQL.isRunning(), is(true));
@@ -72,3 +72,5 @@ public class SampleSpecs extends SingletonContainerSupport {
         assertThat(connection, notNullValue());
     }
 }
+
+
