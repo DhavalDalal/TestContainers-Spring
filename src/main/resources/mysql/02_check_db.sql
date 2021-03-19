@@ -1,5 +1,3 @@
-create database tcspike;
-
 show databases;
 --  +--------------------+
 --  | Database           |
