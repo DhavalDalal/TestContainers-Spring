@@ -1,15 +1,25 @@
 package com.tsys.tc_spike.repository;
-
+//Read Committed – This isolation level guarantees that any data read is committed at the moment it is read. Thus it does not allows dirty read. The transaction holds a read or write lock on the current row, and thus prevent other transactions from reading, updating or deleting it
 import com.tsys.tc_spike.domain.Money;
 import com.tsys.tc_spike.domain.Transaction;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.JdbcDatabaseContainer;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.persistence.EntityManager;
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
 
@@ -17,6 +27,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+// TESTING REPOSITORIES
+// ====================
 // To test Spring Data JPA repositories, or any other JPA-related components,
 // Spring Boot provides the @DataJpaTest annotation. We can just add it to
 // our unit test and it will set up a Spring application context.
@@ -28,32 +40,126 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 // EntityManager into our test class if we need them. And finally, we can
 // inject any of the Spring Data repositories from our application.
 //
-// All of the above components will be automatically configured to point to an
-// embedded, in-memory database instead of the "real" database (configured in
-// application-development.properties or application-production.properties).
+// All of the above components will be automatically configured to point to a
+// actual MySQL database, within the Test Container.
 //
 // It also does not take into account the @TestPropertySource defined in other
 // tests (for example, the @TestPropertySource in PaymentApplicationSpecs is not
-// honoured here).  Here it creates a temp in-memory instance which has the URL that
-// looks something like: jdbc:h2:mem:c916c8b8-2865-4952-9f1b-f61a97fef306
+// honoured here).
 //
 // Further, by default the application context containing all these components,
-// including the in-memory database, is shared between all test methods within
-// all @DataJpaTest annotated test classes.
+// is shared between all test methods within all @DataJpaTest annotated test classes.
 //
-// Also, by default, each test method runs in its own transaction, which is
-// rolled back after the method has executed. This way, the database state
-// stays clean between tests and the tests stay independent of each other.
+// The @DataJpaTest meta-annotation contains the @Transactional annotation.
+// This ensures our test execution is wrapped with a transaction that gets
+// rolled-back after the test. This happens for both successful test
+// cases as well as failures.  This way, the database state stays clean
+// between tests and the tests stay independent of each other.
+//
+// TEST CONTAINERS:
+// ================
+// Jupiter integration is provided by means of the @Testcontainers annotation.
+//
+// This Extension supports two modes:
+// 1. Containers that are restarted for every test method
+// 2. Containers that are shared between all methods of a test class
+//
+// The extension finds all fields that are annotated with @Container and
+// calls their container lifecycle methods (methods on the Startable interface).
+// Containers declared as static fields will be shared between test methods.
+// They will be started only once before any test method is executed and
+// stopped after the last test method has executed. Containers declared as
+// instance fields will be started and stopped for every test method.
+//
+// Note: Using the extension with parallel test execution is unsupported and
+// may have unintended side effects.
 
 // Instead of RunWith for Junit4, we use ExtendWith for Junit5.
 //@ExtendWith(SpringExtension.class)
 @DataJpaTest  // It already has @ExtendWith(SpringExtension.class), so we need not need an explicit one.
+// @Testcontainers: is a JUnit Jupiter extension to activate automatic startup
+// and stop of containers used in a test case.
+@Testcontainers
+//
+// As we are using the MySQL Database from TestContainers,
+// we have to tell to spring test framework that it should not try to
+// replace our database (By default, DataJpaTest will use H2 in-memory
+// database and make a connection to that one).  We can do that by using the
+// @AutoConfigureTestDatabase(replace=AutoConfigureTestDatabase.Replace.NONE)
+// annotation
+//
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Tag("IntegrationTest")
-public class TransactionRepositorySpecs {
+public class TransactionRepositorySpecsUsingPostgresTestContainer {
+    // @Container: is used in conjunction with the @Testcontainers annotation
+    // to mark containers that should be managed by the Testcontainers
+    // extension.
+    @Container
+    public static JdbcDatabaseContainer POSTGRES = new PostgreSQLContainer("postgres:latest")
+            .withDatabaseName("tcspike")
+            .withUsername("tcspikeUser")
+            .withPassword("TcspikePassword")
+            .withInitScript("postgres/03_schema.sql");
+
+    // CREATING A POSTGRES CONTAINER
+    // using static final in the container instance, so the container
+    // will be shared between all tests methods. The mysql container give
+    // me some methods to configure a specific database name, username and
+    // password. If we don't specify this, we will use default values
+    // (database name: test, password: test, username: test)
+    //
+    // By default, Data
+    // In the traditional solution, we needed to do:
+    //
+    //  static class DatabaseEnvInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+    //
+    //        @Override
+    //        public void initialize(ConfigurableApplicationContext applicationContext) {
+    //            TestPropertyValues.of(
+    //              String.format("spring.datasource.url=%s", POSTGRES.getJdbcUrl()),
+    //              String.format("spring.datasource.username=%s", POSTGRES.getUsername()),
+    //              String.format("spring.datasource.password=%s", POSTGRES.getPassword()),
+    //            ).applyTo(applicationContext);
+    //        }
+    //    }
+    //
+    // Spring Framework 5.2.5 introduced the @DynamicPropertySource annotation
+    // to facilitate adding properties with dynamic values. All we have to do
+    // is to create a static method annotated with @DynamicPropertySource and
+    // having just a single DynamicPropertyRegistry instance as the input
+    @DynamicPropertySource
+    static void registerDatabaseProperties(DynamicPropertyRegistry registry) {
+        // We create the schema manually using the script in src/main/resources/set-and-cleanup-db/mysql/03_schema.sql
+        // Hence we set spring.jpa.hibernate.ddl-auto to none
+        // jdbc:postgresql://localhost:5432/postgres
+        registry.add("spring.jpa.database", () -> "POSTGRESQL");
+        registry.add("spring.datasource.platform", () -> "postgres");
+        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
+        registry.add("spring.datasource.url"     , () -> POSTGRES.getJdbcUrl());
+        registry.add("spring.datasource.username", () -> POSTGRES.getUsername());
+        registry.add("spring.datasource.password", () -> POSTGRES.getPassword());
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+//        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
+    }
+
+    // The init function must be a public static method which takes a
+    // java.sql.Connection as its only parameter
+    public static void setupSchema(Connection connection) throws SQLException {
+        // e.g. run schema setup or Flyway/liquibase/etc DB migrations here...
+        System.out.println("TransactionRepositorySpecsUsingPostgresTestContainer.setupSchema called!");
+        // Flyway flyway = Flyway
+        //        .configure()
+        //        .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+        //        .locations(flywayPath)
+        //        .load();
+        // flyway.migrate();
+    }
+
     private final UUID successfulTxnId = UUID.nameUUIDFromBytes("PASSED-TXNID-1".getBytes());
     private final String successfulOrderId = "PASSED-ORDER-ID-1";
     private final UUID failedTxnId = UUID.nameUUIDFromBytes("FAILED-TXNID-2".getBytes());
     private final String failedOrderId = "FAILED-ORDER-ID-2";
+
     @Autowired
     private DataSource dataSource;
     @Autowired
@@ -62,9 +168,27 @@ public class TransactionRepositorySpecs {
     private EntityManager entityManager;
     @Autowired
     private TransactionRepository transactionRepository;
+
     private Date now = Date.from(Instant.now());
     private final Transaction succeeded = new Transaction(successfulTxnId, now, "accepted", successfulOrderId, new Money(Currency.getInstance("INR"), 2000.45));
     private final Transaction failed = new Transaction(failedTxnId, now, "failed", failedOrderId, new Money(Currency.getInstance("INR"), 99.99));
+
+    // When working with @DataJpaTest and an embedded database we can achieve
+    // this with Hibernate's ddl-auto feature set to create-drop. This ensures
+    // to first create the database schema based on our Java entity definitions
+    // and then drops it afterward.
+    //
+    // While this works and might feel convenient (we don't have to write any
+    // SQL), we should rather stick to our hand-crafted scripts. If we don't,
+    // there might be a difference between our database schema during the
+    // test and production.
+    @Test
+    public void containerHasStarted() {
+        assertThat(POSTGRES.isRunning(), is(true));
+        assertThat(POSTGRES.getJdbcUrl(), is(String.format("jdbc:postgresql://localhost:%d/tcspike?loggerLevel=OFF", POSTGRES.getFirstMappedPort())));
+        assertThat(POSTGRES.getUsername(), is("tcspikeUser"));
+        assertThat(POSTGRES.getPassword(), is("TcspikePassword"));
+    }
 
     @Test
     public void dependenciesAreInjected() {
