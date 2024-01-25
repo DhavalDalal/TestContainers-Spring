@@ -1,0 +1,6 @@
+[mysqld]
+default-character-set = utf8
+default-storage-engine = InnoDB
+default-table-type = InnoDB
+ansi
+transaction-isolation = READ-COMMITTED
