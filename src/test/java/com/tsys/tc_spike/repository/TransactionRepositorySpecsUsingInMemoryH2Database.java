@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 import javax.sql.DataSource;
 import java.time.Instant;
 import java.util.*;
@@ -64,7 +64,7 @@ public class TransactionRepositorySpecsUsingInMemoryH2Database {
     private EntityManager entityManager;
     @Autowired
     private TransactionRepository transactionRepository;
-    private Date now = Date.from(Instant.now());
+    private Instant now = Instant.now();
     private final Transaction succeeded = new Transaction(successfulTxnId, now, "accepted", successfulOrderId, new Money(Currency.getInstance("INR"), 2000.45));
     private final Transaction failed = new Transaction(failedTxnId, now, "failed", failedOrderId, new Money(Currency.getInstance("INR"), 99.99));
 
@@ -170,10 +170,10 @@ public class TransactionRepositorySpecsUsingInMemoryH2Database {
     }
 
     @Test
-    public void shoutsWhenDeletingByNonExistentId() {
-        assertThrows(org.springframework.dao.EmptyResultDataAccessException.class,
-                () -> transactionRepository.deleteById(successfulTxnId),
-                String.format("No class com.tsys.tcspike.domain.Transaction entity with id %s exists!", successfulTxnId));
+    public void doesNotShoutWhenDeletingByNonExistentId() {
+        assert transactionRepository.count() == 0;
+        transactionRepository.deleteById(successfulTxnId);
+        assert transactionRepository.count() == 0;
     }
 
     @Test

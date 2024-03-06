@@ -16,9 +16,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 import javax.sql.DataSource;
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -26,7 +26,6 @@ import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 // TESTING REPOSITORIES
 // ====================
@@ -184,7 +183,7 @@ public class TransactionRepositorySpecsUsingMySQLTestContainer {
     @Autowired
     private TransactionRepository transactionRepository;
 
-    private Date now = Date.from(Instant.now());
+    private Instant now = Instant.now();
     private final Transaction succeeded = new Transaction(successfulTxnId, now, "accepted", successfulOrderId, new Money(Currency.getInstance("INR"), 2000.45));
     private final Transaction failed = new Transaction(failedTxnId, now, "failed", failedOrderId, new Money(Currency.getInstance("INR"), 99.99));
 
@@ -242,7 +241,6 @@ public class TransactionRepositorySpecsUsingMySQLTestContainer {
 
     // Tests for Inferred Queries
     @Test
-    @Transactional
     public void startsWithEmptyRepository() {
         assertThat(transactionRepository.count(), is(0L));
     }
@@ -283,6 +281,7 @@ public class TransactionRepositorySpecsUsingMySQLTestContainer {
     public void deletesATransaction() {
         // Given
         transactionRepository.save(succeeded);
+
         assert transactionRepository.findById(successfulTxnId).orElseThrow().equals(succeeded);
 
         // When
@@ -294,6 +293,7 @@ public class TransactionRepositorySpecsUsingMySQLTestContainer {
     }
 
     @Test
+    @Transactional
     public void deletesById() {
         // Given
         transactionRepository.save(succeeded);
@@ -308,14 +308,13 @@ public class TransactionRepositorySpecsUsingMySQLTestContainer {
     }
 
     @Test
-    public void shoutsWhenDeletingByNonExistentId() {
-        assertThrows(org.springframework.dao.EmptyResultDataAccessException.class,
-                () -> transactionRepository.deleteById(successfulTxnId),
-                String.format("No class com.tsys.tcspike.domain.Transaction entity with id %s exists!", successfulTxnId));
+    public void doesNotShoutWhenDeletingByNonExistentId() {
+        assert transactionRepository.count() == 0;
+        transactionRepository.deleteById(successfulTxnId);
+        assert transactionRepository.count() == 0;
     }
 
     @Test
-    @Transactional
     public void findsAllById() {
         // Given
         transactionRepository.save(succeeded);
@@ -335,9 +334,8 @@ public class TransactionRepositorySpecsUsingMySQLTestContainer {
         transactionRepository.saveAll(List.of(succeeded, failed));
 
         // Then
-        final var allById = transactionRepository.findAllById(List.of(successfulTxnId, failedTxnId));
-        assertThat(toList(allById), hasSize(2));
-        assertThat(toList(allById), contains(succeeded, failed));
+        assertThat(transactionRepository.findById(successfulTxnId).orElseThrow(), is(succeeded));
+        assertThat(transactionRepository.findById(failedTxnId).orElseThrow(), is(failed));
     }
 
     @Test

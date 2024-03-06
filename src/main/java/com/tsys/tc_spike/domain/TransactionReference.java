@@ -2,7 +2,7 @@ package com.tsys.tc_spike.domain;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -10,11 +10,11 @@ public class TransactionReference {
     public static final TransactionReference EMPTY = new TransactionReference(null, null, "");
 
     public final UUID id;
-    public final Date date;
+    public final Instant date;
     public final String status;
 
     public TransactionReference(@JsonProperty("id") UUID id,
-                                @JsonProperty("date") Date date,
+                                @JsonProperty("date") Instant date,
                                 @JsonProperty("status") String status) {
         this.id = id;
         this.date = date;

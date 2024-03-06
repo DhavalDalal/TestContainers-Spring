@@ -1,6 +1,7 @@
 -- 1.
 CREATE TABLE `transactions` (
   `id` binary(255) NOT NULL,
+  `version` smallint NOT NULL,
   `date` datetime DEFAULT NULL,
   `order_id` varchar(255) DEFAULT NULL,
   `status` varchar(255) DEFAULT NULL,

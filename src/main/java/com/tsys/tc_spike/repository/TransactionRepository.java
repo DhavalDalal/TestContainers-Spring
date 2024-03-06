@@ -1,6 +1,8 @@
 package com.tsys.tc_spike.repository;
 
 import com.tsys.tc_spike.domain.Transaction;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;

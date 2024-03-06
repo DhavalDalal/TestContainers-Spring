@@ -1,9 +1,11 @@
 package com.tsys.tc_spike.domain;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
-import java.util.Date;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -13,7 +15,11 @@ public class Transaction {
 
     @Id
     public final UUID id;
-    public final Date date;
+
+    @Version
+    private Long version = 0L;
+
+    public final Instant date;
     public final String status;
     public final String orderId;
     public final Money value;
@@ -23,7 +29,7 @@ public class Transaction {
         this(null, null, "", "", null);
     }
 
-    public Transaction(UUID id, Date date, String status, String orderId, Money value) {
+    public Transaction(UUID id, Instant date, String status, String orderId, Money value) {
         this.id = id;
         this.date = date;
         this.status = status;

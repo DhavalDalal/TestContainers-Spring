@@ -1,7 +1,13 @@
 package com.tsys.tc_spike.repository;
-//Read Committed – This isolation level guarantees that any data read is committed at the moment it is read. Thus it does not allows dirty read. The transaction holds a read or write lock on the current row, and thus prevent other transactions from reading, updating or deleting it
+//Read Committed – This isolation level guarantees that any data read
+// is committed at the moment it is read. Thus, it does not allow dirty
+// read. The transaction holds a read or write lock on the current row,
+// and thus prevent other transactions from reading, updating or
+// deleting it
+
 import com.tsys.tc_spike.domain.Money;
 import com.tsys.tc_spike.domain.Transaction;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,12 +17,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.JdbcDatabaseContainer;
-import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import javax.persistence.EntityManager;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -25,7 +29,6 @@ import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 // TESTING REPOSITORIES
 // ====================
@@ -91,159 +94,159 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Tag("IntegrationTest")
 public class TransactionRepositorySpecsUsingPostgresTestContainer {
-    // @Container: is used in conjunction with the @Testcontainers annotation
-    // to mark containers that should be managed by the Testcontainers
-    // extension.
-    @Container
-    public static JdbcDatabaseContainer POSTGRES = new PostgreSQLContainer("postgres:latest")
-            .withDatabaseName("tcspike")
-            .withUsername("tcspikeUser")
-            .withPassword("TcspikePassword")
-            .withInitScript("postgres/03_schema.sql");
+  // @Container: is used in conjunction with the @Testcontainers annotation
+  // to mark containers that should be managed by the Testcontainers
+  // extension.
+  @Container
+  public static JdbcDatabaseContainer POSTGRES = new PostgreSQLContainer("postgres:latest")
+      .withDatabaseName("tcspike")
+      .withUsername("tcspikeUser")
+      .withPassword("TcspikePassword")
+      .withInitScript("postgres/03_schema.sql");
 
-    // CREATING A POSTGRES CONTAINER
-    // using static final in the container instance, so the container
-    // will be shared between all tests methods. The mysql container give
-    // me some methods to configure a specific database name, username and
-    // password. If we don't specify this, we will use default values
-    // (database name: test, password: test, username: test)
-    //
-    // By default, Data
-    // In the traditional solution, we needed to do:
-    //
-    //  static class DatabaseEnvInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
-    //
-    //        @Override
-    //        public void initialize(ConfigurableApplicationContext applicationContext) {
-    //            TestPropertyValues.of(
-    //              String.format("spring.datasource.url=%s", POSTGRES.getJdbcUrl()),
-    //              String.format("spring.datasource.username=%s", POSTGRES.getUsername()),
-    //              String.format("spring.datasource.password=%s", POSTGRES.getPassword()),
-    //            ).applyTo(applicationContext);
-    //        }
-    //    }
-    //
-    // Spring Framework 5.2.5 introduced the @DynamicPropertySource annotation
-    // to facilitate adding properties with dynamic values. All we have to do
-    // is to create a static method annotated with @DynamicPropertySource and
-    // having just a single DynamicPropertyRegistry instance as the input
-    @DynamicPropertySource
-    static void registerDatabaseProperties(DynamicPropertyRegistry registry) {
-        // We create the schema manually using the script in src/main/resources/set-and-cleanup-db/mysql/03_schema.sql
-        // Hence we set spring.jpa.hibernate.ddl-auto to none
-        // jdbc:postgresql://localhost:5432/postgres
-        registry.add("spring.jpa.database", () -> "POSTGRESQL");
-        registry.add("spring.datasource.platform", () -> "postgres");
-        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.datasource.url"     , () -> POSTGRES.getJdbcUrl());
-        registry.add("spring.datasource.username", () -> POSTGRES.getUsername());
-        registry.add("spring.datasource.password", () -> POSTGRES.getPassword());
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+  // CREATING A POSTGRES CONTAINER
+  // using static final in the container instance, so the container
+  // will be shared between all tests methods. The mysql container give
+  // me some methods to configure a specific database name, username and
+  // password. If we don't specify this, we will use default values
+  // (database name: test, password: test, username: test)
+  //
+  // By default, Data
+  // In the traditional solution, we needed to do:
+  //
+  //  static class DatabaseEnvInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+  //
+  //        @Override
+  //        public void initialize(ConfigurableApplicationContext applicationContext) {
+  //            TestPropertyValues.of(
+  //              String.format("spring.datasource.url=%s", POSTGRES.getJdbcUrl()),
+  //              String.format("spring.datasource.username=%s", POSTGRES.getUsername()),
+  //              String.format("spring.datasource.password=%s", POSTGRES.getPassword()),
+  //            ).applyTo(applicationContext);
+  //        }
+  //    }
+  //
+  // Spring Framework 5.2.5 introduced the @DynamicPropertySource annotation
+  // to facilitate adding properties with dynamic values. All we have to do
+  // is to create a static method annotated with @DynamicPropertySource and
+  // having just a single DynamicPropertyRegistry instance as the input
+  @DynamicPropertySource
+  static void registerDatabaseProperties(DynamicPropertyRegistry registry) {
+    // We create the schema manually using the script in src/main/resources/set-and-cleanup-db/mysql/03_schema.sql
+    // Hence we set spring.jpa.hibernate.ddl-auto to none
+    // jdbc:postgresql://localhost:5432/postgres
+    registry.add("spring.jpa.database", () -> "POSTGRESQL");
+    registry.add("spring.datasource.platform", () -> "postgres");
+    registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
+    registry.add("spring.datasource.url", () -> POSTGRES.getJdbcUrl());
+    registry.add("spring.datasource.username", () -> POSTGRES.getUsername());
+    registry.add("spring.datasource.password", () -> POSTGRES.getPassword());
+    registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
 //        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-    }
+  }
 
-    // The init function must be a public static method which takes a
-    // java.sql.Connection as its only parameter
-    public static void setupSchema(Connection connection) throws SQLException {
-        // e.g. run schema setup or Flyway/liquibase/etc DB migrations here...
-        System.out.println("TransactionRepositorySpecsUsingPostgresTestContainer.setupSchema called!");
-        // Flyway flyway = Flyway
-        //        .configure()
-        //        .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
-        //        .locations(flywayPath)
-        //        .load();
-        // flyway.migrate();
-    }
+  // The init function must be a public static method which takes a
+  // java.sql.Connection as its only parameter
+  public static void setupSchema(Connection connection) throws SQLException {
+    // e.g. run schema setup or Flyway/liquibase/etc DB migrations here...
+    System.out.println("TransactionRepositorySpecsUsingPostgresTestContainer.setupSchema called!");
+    // Flyway flyway = Flyway
+    //        .configure()
+    //        .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+    //        .locations(flywayPath)
+    //        .load();
+    // flyway.migrate();
+  }
 
-    private final UUID successfulTxnId = UUID.nameUUIDFromBytes("PASSED-TXNID-1".getBytes());
-    private final String successfulOrderId = "PASSED-ORDER-ID-1";
-    private final UUID failedTxnId = UUID.nameUUIDFromBytes("FAILED-TXNID-2".getBytes());
-    private final String failedOrderId = "FAILED-ORDER-ID-2";
+  private final UUID successfulTxnId = UUID.nameUUIDFromBytes("PASSED-TXNID-1".getBytes());
+  private final String successfulOrderId = "PASSED-ORDER-ID-1";
+  private final UUID failedTxnId = UUID.nameUUIDFromBytes("FAILED-TXNID-2".getBytes());
+  private final String failedOrderId = "FAILED-ORDER-ID-2";
 
-    @Autowired
-    private DataSource dataSource;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-    @Autowired
-    private EntityManager entityManager;
-    @Autowired
-    private TransactionRepository transactionRepository;
+  @Autowired
+  private DataSource dataSource;
+  @Autowired
+  private JdbcTemplate jdbcTemplate;
+  @Autowired
+  private EntityManager entityManager;
+  @Autowired
+  private TransactionRepository transactionRepository;
 
-    private Date now = Date.from(Instant.now());
-    private final Transaction succeeded = new Transaction(successfulTxnId, now, "accepted", successfulOrderId, new Money(Currency.getInstance("INR"), 2000.45));
-    private final Transaction failed = new Transaction(failedTxnId, now, "failed", failedOrderId, new Money(Currency.getInstance("INR"), 99.99));
+  private Instant now = Instant.now();
+  private final Transaction succeeded = new Transaction(successfulTxnId, now, "accepted", successfulOrderId, new Money(Currency.getInstance("INR"), 2000.45));
+  private final Transaction failed = new Transaction(failedTxnId, now, "failed", failedOrderId, new Money(Currency.getInstance("INR"), 99.99));
 
-    // When working with @DataJpaTest and an embedded database we can achieve
-    // this with Hibernate's ddl-auto feature set to create-drop. This ensures
-    // to first create the database schema based on our Java entity definitions
-    // and then drops it afterward.
-    //
-    // While this works and might feel convenient (we don't have to write any
-    // SQL), we should rather stick to our hand-crafted scripts. If we don't,
-    // there might be a difference between our database schema during the
-    // test and production.
-    @Test
-    public void containerHasStarted() {
-        assertThat(POSTGRES.isRunning(), is(true));
-        assertThat(POSTGRES.getJdbcUrl(), is(String.format("jdbc:postgresql://localhost:%d/tcspike?loggerLevel=OFF", POSTGRES.getFirstMappedPort())));
-        assertThat(POSTGRES.getUsername(), is("tcspikeUser"));
-        assertThat(POSTGRES.getPassword(), is("TcspikePassword"));
-    }
+  // When working with @DataJpaTest and an embedded database we can achieve
+  // this with Hibernate's ddl-auto feature set to create-drop. This ensures
+  // to first create the database schema based on our Java entity definitions
+  // and then drops it afterward.
+  //
+  // While this works and might feel convenient (we don't have to write any
+  // SQL), we should rather stick to our hand-crafted scripts. If we don't,
+  // there might be a difference between our database schema during the
+  // test and production.
+  @Test
+  public void containerHasStarted() {
+    assertThat(POSTGRES.isRunning(), is(true));
+    assertThat(POSTGRES.getJdbcUrl(), is(String.format("jdbc:postgresql://localhost:%d/tcspike?loggerLevel=OFF", POSTGRES.getFirstMappedPort())));
+    assertThat(POSTGRES.getUsername(), is("tcspikeUser"));
+    assertThat(POSTGRES.getPassword(), is("TcspikePassword"));
+  }
 
-    @Test
-    public void dependenciesAreInjected() {
-        assertThat(dataSource, notNullValue());
-        assertThat(jdbcTemplate, notNullValue());
-        assertThat(entityManager, notNullValue());
-        assertThat(transactionRepository, notNullValue());
-    }
+  @Test
+  public void dependenciesAreInjected() {
+    assertThat(dataSource, notNullValue());
+    assertThat(jdbcTemplate, notNullValue());
+    assertThat(entityManager, notNullValue());
+    assertThat(transactionRepository, notNullValue());
+  }
 
-    // Which tests to write?
-    // =====================
-    // 1. Ideally for all inferred queries, one can avoid writing tests. If we have
-    //    only one test that tries to start up the Spring application context in our
-    //    code base, we do not need to write an extra test for our inferred query.
-    //    Just the above test is enough because, if all the dependencies can be
-    //    injected, it means that the system started successfully.
-    //    NOTE: But I've written here just to demo how a Repository Integration tests
-    //    can be written.
-    //
-    // 2. For Custom JPQL Queries, for simple ones, one can avoid writing tests.
-    //    In case of complicated custom queries which might include joins with
-    //    other tables or return aggregate objects instead of an entity, it is a good
-    //    idea to write the tests for those.
-    //
-    // 3. For Native Queries, neither Hibernate nor Spring Data validate them at startup.
-    //    Since the query may contain database-specific SQL, there’s no way Spring Data or
-    //    Hibernate can know what to check for.
-    //
-    //    So, native queries are prime candidates for integration tests. However, if they
-    //    really use database-specific SQL, those tests might not work with the embedded
-    //    in-memory database, so we would have to provide a real database in the background
-    //    (for instance in a docker container that is set up on-demand in the continuous
-    //    integration pipeline).
-    //    Alternatively, resort to ANSI-compliant SQL so that it work across different
-    //    databases.
+  // Which tests to write?
+  // =====================
+  // 1. Ideally for all inferred queries, one can avoid writing tests. If we have
+  //    only one test that tries to start up the Spring application context in our
+  //    code base, we do not need to write an extra test for our inferred query.
+  //    Just the above test is enough because, if all the dependencies can be
+  //    injected, it means that the system started successfully.
+  //    NOTE: But I've written here just to demo how a Repository Integration tests
+  //    can be written.
+  //
+  // 2. For Custom JPQL Queries, for simple ones, one can avoid writing tests.
+  //    In case of complicated custom queries which might include joins with
+  //    other tables or return aggregate objects instead of an entity, it is a good
+  //    idea to write the tests for those.
+  //
+  // 3. For Native Queries, neither Hibernate nor Spring Data validate them at startup.
+  //    Since the query may contain database-specific SQL, there’s no way Spring Data or
+  //    Hibernate can know what to check for.
+  //
+  //    So, native queries are prime candidates for integration tests. However, if they
+  //    really use database-specific SQL, those tests might not work with the embedded
+  //    in-memory database, so we would have to provide a real database in the background
+  //    (for instance in a docker container that is set up on-demand in the continuous
+  //    integration pipeline).
+  //    Alternatively, resort to ANSI-compliant SQL so that it work across different
+  //    databases.
 
-    // Tests for Inferred Queries
-    @Test
-    public void startsWithEmptyRepository() {
-        assertThat(transactionRepository.count(), is(0L));
-    }
+  // Tests for Inferred Queries
+  @Test
+  public void startsWithEmptyRepository() {
+    assertThat(transactionRepository.count(), is(0L));
+  }
 
-    @Test
-    public void findsNoTransactionsInAnEmptyRepository() {
-        assertThat(toList(transactionRepository.findAll()), hasSize(0));
-    }
+  @Test
+  public void findsNoTransactionsInAnEmptyRepository() {
+    assertThat(toList(transactionRepository.findAll()), hasSize(0));
+  }
 
-    @Test
-    public void findingByIdInAnEmptyRepositoryYieldsNothing() {
-        assertThat(transactionRepository.findById(successfulTxnId), is(Optional.empty()));
-    }
+  @Test
+  public void findingByIdInAnEmptyRepositoryYieldsNothing() {
+    assertThat(transactionRepository.findById(successfulTxnId), is(Optional.empty()));
+  }
 
-    @Test
-    public void noTransactionsExistInAnEmptyRepository() {
-        assertThat(transactionRepository.existsById(successfulTxnId), is(false));
+  @Test
+  public void noTransactionsExistInAnEmptyRepository() {
+    assertThat(transactionRepository.existsById(successfulTxnId), is(false));
 //    assertThrows(EntityNotFoundException.class, () -> {
 //      // Calling assertThat with nullValue() causes HibernateProxy to evaluate and
 //      // then throw an javax.persistence.EntityNotFoundException, else
@@ -252,130 +255,130 @@ public class TransactionRepositorySpecsUsingPostgresTestContainer {
 //      // Wrapping in assertThat causes proxy to evaluate and then throw an Exception.
 //      assertThat(transactionRepository.getOne(txnId), nullValue());
 //    });
-    }
+  }
 
-    @Test
-    public void savesATransaction() {
-        // When
-        transactionRepository.save(succeeded);
-        // Then
-        assertThat(toList(transactionRepository.findAll()), hasSize(1));
-        assertThat(transactionRepository.findById(successfulTxnId).orElseThrow(), is(succeeded));
-    }
+  @Test
+  public void savesATransaction() {
+    // When
+    transactionRepository.save(succeeded);
+    // Then
+    assertThat(toList(transactionRepository.findAll()), hasSize(1));
+    assertThat(transactionRepository.findById(successfulTxnId).orElseThrow(), is(succeeded));
+  }
 
-    @Test
-    public void deletesATransaction() {
-        // Given
-        transactionRepository.save(succeeded);
-        assert transactionRepository.findById(successfulTxnId).orElseThrow().equals(succeeded);
+  @Test
+  public void deletesATransaction() {
+    // Given
+    transactionRepository.save(succeeded);
+    assert transactionRepository.findById(successfulTxnId).orElseThrow().equals(succeeded);
 
-        // When
-        transactionRepository.delete(succeeded);
+    // When
+    transactionRepository.delete(succeeded);
 
-        // Then
-        assertThat(toList(transactionRepository.findAll()), hasSize(0));
-        assertThat(transactionRepository.findById(successfulTxnId), is(Optional.empty()));
-    }
+    // Then
+    assertThat(toList(transactionRepository.findAll()), hasSize(0));
+    assertThat(transactionRepository.findById(successfulTxnId), is(Optional.empty()));
+  }
 
-    @Test
-    public void deletesById() {
-        // Given
-        transactionRepository.save(succeeded);
-        assert transactionRepository.findById(successfulTxnId).orElseThrow().equals(succeeded);
+  @Test
+  public void deletesById() {
+    // Given
+    transactionRepository.save(succeeded);
+    assert transactionRepository.findById(successfulTxnId).orElseThrow().equals(succeeded);
 
-        // When
-        transactionRepository.deleteById(successfulTxnId);
+    // When
+    transactionRepository.deleteById(successfulTxnId);
 
-        // Then
-        assertThat(toList(transactionRepository.findAll()), hasSize(0));
-        assertThat(transactionRepository.findById(successfulTxnId), is(Optional.empty()));
-    }
+    // Then
+    assertThat(toList(transactionRepository.findAll()), hasSize(0));
+    assertThat(transactionRepository.findById(successfulTxnId), is(Optional.empty()));
+  }
 
-    @Test
-    public void shoutsWhenDeletingByNonExistentId() {
-        assertThrows(org.springframework.dao.EmptyResultDataAccessException.class,
-                () -> transactionRepository.deleteById(successfulTxnId),
-                String.format("No class com.tsys.tcspike.domain.Transaction entity with id %s exists!", successfulTxnId));
-    }
+  @Test
+  public void doesNotShoutWhenDeletingByNonExistentId() {
+    assert transactionRepository.count() == 0;
+    transactionRepository.deleteById(successfulTxnId);
+    assert transactionRepository.count() == 0;
+  }
 
-    @Test
-    public void findsAllById() {
-        // Given
-        transactionRepository.save(succeeded);
-        transactionRepository.save(failed);
+  @Test
+  public void findsAllById() {
+    // Given
+    transactionRepository.save(succeeded);
+    transactionRepository.save(failed);
 
-        // When
-        final var allById = transactionRepository.findAllById(List.of(successfulTxnId, failedTxnId));
+    // When
+    final var allById = transactionRepository.findAllById(List.of(successfulTxnId, failedTxnId));
 
-        // Then
-        assertThat(toList(allById), hasSize(2));
-        assertThat(toList(allById), contains(succeeded, failed));
-    }
+    // Then
+    assertThat(toList(allById), hasSize(2));
+    assertThat(toList(allById), contains(succeeded, failed));
+  }
 
-    @Test
-    public void savesAll() {
-        // When
-        transactionRepository.saveAll(List.of(succeeded, failed));
+  @Test
+  public void savesAll() {
+    // When
+    transactionRepository.saveAll(List.of(succeeded, failed));
 
-        // Then
-        final var allById = transactionRepository.findAllById(List.of(successfulTxnId, failedTxnId));
-        assertThat(toList(allById), hasSize(2));
-        assertThat(toList(allById), contains(succeeded, failed));
-    }
+    // Then
+    final var allById = transactionRepository.findAllById(List.of(successfulTxnId, failedTxnId));
+    assertThat(toList(allById), hasSize(2));
+    assertThat(toList(allById), contains(succeeded, failed));
+  }
 
-    @Test
-    public void deletesAll() {
-        // Given
-        assertThat(toList(transactionRepository.saveAll(List.of(succeeded, failed))), hasSize(2));
+  @Test
+  public void deletesAll() {
+    // Given
+    assertThat(toList(transactionRepository.saveAll(List.of(succeeded, failed))), hasSize(2));
 
-        // When
-        transactionRepository.deleteAll(List.of(succeeded, failed));
+    // When
+    transactionRepository.deleteAll(List.of(succeeded, failed));
 
-        // Then
-        assertThat(toList(transactionRepository.findAllById(List.of(successfulTxnId, failedTxnId))), hasSize(0));
-    }
+    // Then
+    assertThat(toList(transactionRepository.findAllById(List.of(successfulTxnId, failedTxnId))), hasSize(0));
+  }
 
-    // Tests for Custom JPQL Queries
-    @Test
-    public void findsTransactionByOrderId() {
-        transactionRepository.saveAll(List.of(succeeded, failed));
+  // Tests for Custom JPQL Queries
+  @Test
+  public void findsTransactionByOrderId() {
+    transactionRepository.saveAll(List.of(succeeded, failed));
 
-        assertThat(transactionRepository.findByOrderId(successfulOrderId).orElseThrow(), is(succeeded));
-    }
+    assertThat(transactionRepository.findByOrderId(successfulOrderId).orElseThrow(), is(succeeded));
+  }
 
-    @Test
-    public void findingTransactionByOrderIdInAnEmptyRepositoryYieldsNothing() {
-        assertThat(transactionRepository.findByOrderId(successfulOrderId), is(Optional.empty()));
-    }
+  @Test
+  public void findingTransactionByOrderIdInAnEmptyRepositoryYieldsNothing() {
+    assertThat(transactionRepository.findByOrderId(successfulOrderId), is(Optional.empty()));
+  }
 
-    @Test
-    public void findsTransactionByTransactionIdAndOrderId() {
-        transactionRepository.saveAll(List.of(succeeded, failed));
+  @Test
+  public void findsTransactionByTransactionIdAndOrderId() {
+    transactionRepository.saveAll(List.of(succeeded, failed));
 
-        assertThat(transactionRepository.findByTransactionIdAndOrderId(successfulTxnId, successfulOrderId).orElseThrow(), is(succeeded));
-    }
+    assertThat(transactionRepository.findByTransactionIdAndOrderId(successfulTxnId, successfulOrderId).orElseThrow(), is(succeeded));
+  }
 
-    @Test
-    public void findingTransactionByTransactionIdAndOrderIdInAnEmptyRepositoryYieldsNothing() {
-        assertThat(transactionRepository.findByTransactionIdAndOrderId(successfulTxnId, successfulOrderId), is(Optional.empty()));
-    }
+  @Test
+  public void findingTransactionByTransactionIdAndOrderIdInAnEmptyRepositoryYieldsNothing() {
+    assertThat(transactionRepository.findByTransactionIdAndOrderId(successfulTxnId, successfulOrderId), is(Optional.empty()));
+  }
 
-    // Tests for Native SQL Queries
-    @Test
-    public void findsAllTransactionByOrderIds() {
-        transactionRepository.saveAll(List.of(succeeded, failed));
+  // Tests for Native SQL Queries
+  @Test
+  public void findsAllTransactionByOrderIds() {
+    transactionRepository.saveAll(List.of(succeeded, failed));
 
-        assertThat(transactionRepository.findAllByOrderIds(List.of(successfulOrderId, failedOrderId)), hasSize(2));
-    }
+    assertThat(transactionRepository.findAllByOrderIds(List.of(successfulOrderId, failedOrderId)), hasSize(2));
+  }
 
-    @Test
-    public void findingTransactionsByOrderIdsInAnEmptyRepositoryYieldsNothing() {
-        assertThat(transactionRepository.findAllByOrderIds(List.of(successfulOrderId, failedOrderId)), hasSize(0));
-    }
+  @Test
+  public void findingTransactionsByOrderIdsInAnEmptyRepositoryYieldsNothing() {
+    assertThat(transactionRepository.findAllByOrderIds(List.of(successfulOrderId, failedOrderId)), hasSize(0));
+  }
 
-    private <T> List<T> toList(Iterable<T> iterable) {
-        var list = new ArrayList<T>();
-        iterable.forEach(list::add);
-        return list;
-    }
+  private <T> List<T> toList(Iterable<T> iterable) {
+    var list = new ArrayList<T>();
+    iterable.forEach(list::add);
+    return list;
+  }
 }

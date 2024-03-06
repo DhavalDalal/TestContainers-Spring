@@ -1,6 +1,6 @@
 package com.tsys.tc_spike.domain;
 
-import javax.persistence.Embeddable;
+import jakarta.persistence.Embeddable;
 import java.util.Currency;
 import java.util.Locale;
 

@@ -1,6 +1,7 @@
 -- 1. Create table transactions
 CREATE TABLE IF NOT EXISTS transactions (
   id uuid NOT NULL,
+  version smallint NOT NULL,
   date timestamp DEFAULT NULL,
   order_id varchar(255) DEFAULT NULL,
   status varchar(255) DEFAULT NULL,
