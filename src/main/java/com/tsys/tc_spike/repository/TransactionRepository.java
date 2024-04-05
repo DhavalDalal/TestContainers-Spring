@@ -2,6 +2,7 @@ package com.tsys.tc_spike.repository;
 
 import com.tsys.tc_spike.domain.Transaction;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
@@ -11,9 +12,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface TransactionRepository extends CrudRepository<Transaction, UUID> {
+//public interface TransactionRepository extends CrudRepository<Transaction, UUID> {
 //public interface TransactionRepository extends PagingAndSortingRepository<Transaction, String> {
-//public interface TransactionRepository extends JpaRepository<Transaction, String> {
+public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
 
     // We have 3 different options to create queries.
     // 1. Create an INFERRED QUERY:
